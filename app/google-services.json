@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1042351270304",
+    "project_id": "learinfy",
+    "storage_bucket": "learinfy.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1042351270304:android:0b89ffa9ef19bddc2d1cc5",
+        "android_client_info": {
+          "package_name": "com.nadavsprung.hackathon"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1042351270304-r27s42avfqp9dtmf2gn6ljup16hp1gqm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nadavsprung.hackathon",
+            "certificate_hash": "02ea1333cd29f18b1ab6145ae7aa38fa469a5fe7"
+          }
+        },
+        {
+          "client_id": "1042351270304-1cga26ailqhtbkhoo3n3fdll08gjt64l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAcewgerUJtXbALDMEvwXAOZ5M3qFmCS8E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1042351270304-1cga26ailqhtbkhoo3n3fdll08gjt64l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

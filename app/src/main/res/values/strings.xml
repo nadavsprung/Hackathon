@@ -2,4 +2,5 @@
     <string name="app_name">Hackathon</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="default_web_client_id">1042351270304-r27s42avfqp9dtmf2gn6ljup16hp1gqm.apps.googleusercontent.com</string>
 </resources>
