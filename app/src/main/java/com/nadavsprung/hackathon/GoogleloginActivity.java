@@ -57,20 +57,27 @@ public class GoogleloginActivity extends AppCompatActivity {
                         String errorMessage = "שגיאה בהתחברות עם Google";
                         int statusCode = e.getStatusCode();
                         if (statusCode == 12500) {
-                            errorMessage = "האפליקציה לא מוגדרת כראוי. אנא בדוק את ההגדרות ב-Firebase Console";
+                            errorMessage = "האפליקציה לא מוגדרת כראוי. בדוק את ה-SHA-1 fingerprint ב-Firebase Console";
                         } else if (statusCode == 10) {
-                            errorMessage = "החשבון לא נמצא";
+                            // DEVELOPER_ERROR - Configuration issue with OAuth client
+                            errorMessage = "שגיאת הגדרה: ה-OAuth client לא מוגדר כראוי. בדוק ב-Firebase Console:\n" +
+                                    "1. ה-SHA-1 fingerprint נוסף לאפליקציה\n" +
+                                    "2. OAuth client מוגדר\n" +
+                                    "3. שם החבילה תואם";
                         } else if (statusCode == 7) {
                             errorMessage = "שגיאת רשת. בדוק את החיבור לאינטרנט";
                         } else if (statusCode == 8) {
                             errorMessage = "שגיאה ב-Google Play Services. אנא עדכן את Google Play Services";
                         } else if (statusCode == 16) {
                             errorMessage = "האפליקציה לא מאומתת. בדוק את ה-SHA-1 fingerprint ב-Firebase Console";
+                        } else if (statusCode == 13) {
+                            errorMessage = "שגיאת פנימית. נסה שוב מאוחר יותר";
                         }
                         String finalMessage = errorMessage;
-                        if (e.getMessage() != null) {
-                            finalMessage += " (קוד שגיאה: " + statusCode + ")";
+                        if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+                            finalMessage += "\nפרטים: " + e.getMessage();
                         }
+                        finalMessage += " (קוד: " + statusCode + ")";
                         Toast.makeText(this, finalMessage, Toast.LENGTH_LONG).show();
                     }
                 } else if (result.getResultCode() == Activity.RESULT_CANCELED) {
@@ -89,15 +96,25 @@ public class GoogleloginActivity extends AppCompatActivity {
                             if (statusCode == 12500) {
                                 errorMessage = "האפליקציה לא מוגדרת כראוי. בדוק את ה-SHA-1 fingerprint ב-Firebase Console";
                             } else if (statusCode == 10) {
-                                errorMessage = "החשבון לא נמצא";
+                                // DEVELOPER_ERROR - Configuration issue with OAuth client
+                                errorMessage = "שגיאת הגדרה (קוד 10): ה-OAuth client לא מוגדר כראוי. בדוק ב-Firebase Console:\n" +
+                                        "1. ה-SHA-1 fingerprint נוסף\n" +
+                                        "2. OAuth client מוגדר\n" +
+                                        "3. שם החבילה תואם";
                             } else if (statusCode == 7) {
                                 errorMessage = "שגיאת רשת. בדוק את החיבור לאינטרנט";
                             } else if (statusCode == 8) {
                                 errorMessage = "שגיאה ב-Google Play Services. עדכן את Google Play Services";
                             } else if (statusCode == 16) {
                                 errorMessage = "האפליקציה לא מאומתת. בדוק את ה-SHA-1 fingerprint ב-Firebase Console";
+                            } else if (statusCode == 13) {
+                                errorMessage = "שגיאת פנימית. נסה שוב מאוחר יותר";
                             }
-                            Toast.makeText(this, errorMessage + " (קוד: " + statusCode + ")", Toast.LENGTH_LONG).show();
+                            String finalMsg = errorMessage;
+                            if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+                                finalMsg += "\nפרטים: " + e.getMessage();
+                            }
+                            Toast.makeText(this, finalMsg + " (קוד: " + statusCode + ")", Toast.LENGTH_LONG).show();
                         }
                     } else {
                         // User actually canceled
