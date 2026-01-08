@@ -13,7 +13,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
-            android:text="עלת חומרים"
+            android:text="העלאת חומרים"
             android:textSize="24sp"
             android:textStyle="bold" />
 
