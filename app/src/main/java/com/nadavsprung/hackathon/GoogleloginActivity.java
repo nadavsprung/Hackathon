@@ -55,21 +55,56 @@ public class GoogleloginActivity extends AppCompatActivity {
                         }
                     } catch (ApiException e) {
                         String errorMessage = "שגיאה בהתחברות עם Google";
-                        if (e.getStatusCode() == 12500) {
-                            errorMessage = "האפליקציה לא מוגדרת כראוי. אנא בדוק את ההגדרות";
-                        } else if (e.getStatusCode() == 10) {
+                        int statusCode = e.getStatusCode();
+                        if (statusCode == 12500) {
+                            errorMessage = "האפליקציה לא מוגדרת כראוי. אנא בדוק את ההגדרות ב-Firebase Console";
+                        } else if (statusCode == 10) {
                             errorMessage = "החשבון לא נמצא";
-                        } else if (e.getStatusCode() == 7) {
+                        } else if (statusCode == 7) {
                             errorMessage = "שגיאת רשת. בדוק את החיבור לאינטרנט";
+                        } else if (statusCode == 8) {
+                            errorMessage = "שגיאה ב-Google Play Services. אנא עדכן את Google Play Services";
+                        } else if (statusCode == 16) {
+                            errorMessage = "האפליקציה לא מאומתת. בדוק את ה-SHA-1 fingerprint ב-Firebase Console";
                         }
                         String finalMessage = errorMessage;
                         if (e.getMessage() != null) {
-                            finalMessage += ": " + e.getMessage();
+                            finalMessage += " (קוד שגיאה: " + statusCode + ")";
                         }
                         Toast.makeText(this, finalMessage, Toast.LENGTH_LONG).show();
                     }
                 } else if (result.getResultCode() == Activity.RESULT_CANCELED) {
-                    Toast.makeText(this, "בוטל על ידי המשתמש", Toast.LENGTH_SHORT).show();
+                    // Sometimes errors are returned as RESULT_CANCELED, try to check for errors
+                    Intent data = result.getData();
+                    if (data != null) {
+                        try {
+                            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+                            GoogleSignInAccount account = task.getResult(ApiException.class);
+                            // If we got here without exception, but result was canceled, it was likely user cancel
+                            Toast.makeText(this, "בוטל על ידי המשתמש", Toast.LENGTH_SHORT).show();
+                        } catch (ApiException e) {
+                            // There was an actual error
+                            String errorMessage = "שגיאה בהתחברות עם Google";
+                            int statusCode = e.getStatusCode();
+                            if (statusCode == 12500) {
+                                errorMessage = "האפליקציה לא מוגדרת כראוי. בדוק את ה-SHA-1 fingerprint ב-Firebase Console";
+                            } else if (statusCode == 10) {
+                                errorMessage = "החשבון לא נמצא";
+                            } else if (statusCode == 7) {
+                                errorMessage = "שגיאת רשת. בדוק את החיבור לאינטרנט";
+                            } else if (statusCode == 8) {
+                                errorMessage = "שגיאה ב-Google Play Services. עדכן את Google Play Services";
+                            } else if (statusCode == 16) {
+                                errorMessage = "האפליקציה לא מאומתת. בדוק את ה-SHA-1 fingerprint ב-Firebase Console";
+                            }
+                            Toast.makeText(this, errorMessage + " (קוד: " + statusCode + ")", Toast.LENGTH_LONG).show();
+                        }
+                    } else {
+                        // User actually canceled
+                        Toast.makeText(this, "התחברות Google בוטלה", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(this, "שגיאה לא ידועה בהתחברות Google (קוד תוצאה: " + result.getResultCode() + ")", Toast.LENGTH_LONG).show();
                 }
             }
     );
