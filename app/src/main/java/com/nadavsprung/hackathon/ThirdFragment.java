@@ -72,9 +72,21 @@ public class ThirdFragment extends Fragment {
 
         btnCreateTest.setOnClickListener(v -> showCreateTestDialog());
 
-        loadTests();
+        // Only load tests when fragment is visible
+        if (getView() != null && isAdded() && getContext() != null) {
+            loadTests();
+        }
 
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Reload tests when fragment becomes visible
+        if (isAdded() && getContext() != null) {
+            loadTests();
+        }
     }
 
     private void showCreateTestDialog() {
@@ -197,24 +209,56 @@ public class ThirdFragment extends Fragment {
     }
 
     private void loadTests() {
-        // Load all tests (anyone can create and see tests)
-        db.collection("tests")
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<TestModel> tests = new ArrayList<>();
-                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        TestModel test = doc.toObject(TestModel.class);
-                        if (test != null) {
-                            tests.add(test);
+        if (getContext() == null || !isAdded() || db == null) {
+            return;
+        }
+
+        try {
+            // Load all tests (anyone can create and see tests)
+            db.collection("tests")
+                    .get()
+                    .addOnSuccessListener(queryDocumentSnapshots -> {
+                        if (getContext() == null || !isAdded()) {
+                            return;
                         }
-                    }
-                    // Sort by createdAt manually
-                    tests.sort((t1, t2) -> Long.compare(t2.getCreatedAt(), t1.getCreatedAt()));
-                    adapter.setTests(tests);
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(getContext(), "שגיאה בטעינת המבחנים: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+                        List<TestModel> tests = new ArrayList<>();
+                        try {
+                            for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                                TestModel test = doc.toObject(TestModel.class);
+                                if (test != null) {
+                                    tests.add(test);
+                                }
+                            }
+                            // Sort by createdAt manually
+                            tests.sort((t1, t2) -> Long.compare(t2.getCreatedAt(), t1.getCreatedAt()));
+                            adapter.setTests(tests);
+                        } catch (Exception e) {
+                            if (getContext() != null && isAdded()) {
+                                Toast.makeText(getContext(), "שגיאה בעיבוד המבחנים", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        if (getContext() != null && isAdded()) {
+                            String errorMsg = "שגיאה בטעינת המבחנים";
+                            if (e != null && e.getMessage() != null) {
+                                String msg = e.getMessage().toLowerCase();
+                                if (msg.contains("permission") || msg.contains("permission-denied")) {
+                                    errorMsg = "אין הרשאה לגשת למבחנים. אנא בדוק את הגדרות מסד הנתונים";
+                                } else if (msg.contains("network") || msg.contains("unavailable")) {
+                                    errorMsg = "שגיאת רשת. בדוק את החיבור לאינטרנט";
+                                } else {
+                                    errorMsg = "שגיאה: " + e.getMessage();
+                                }
+                            }
+                            Toast.makeText(getContext(), errorMsg, Toast.LENGTH_LONG).show();
+                        }
+                    });
+        } catch (Exception e) {
+            if (getContext() != null && isAdded()) {
+                Toast.makeText(getContext(), "שגיאה בהתחברות למסד הנתונים", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private void showLeaderboardDialog(TestModel test) {

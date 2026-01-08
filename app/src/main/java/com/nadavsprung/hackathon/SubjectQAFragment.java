@@ -48,31 +48,65 @@ public class SubjectQAFragment extends Fragment {
         recyclerQA.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerQA.setAdapter(adapter);
 
-        loadQA();
+        // Only load QA when fragment is visible
+        if (getView() != null && isAdded() && getContext() != null) {
+            loadQA();
+        }
 
         return view;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Reload QA when fragment becomes visible
+        if (isAdded() && getContext() != null) {
+            loadQA();
+        }
+    }
+
     private void loadQA() {
-        db.collection("qa")
-                .whereEqualTo("subject", subject)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<QAModel> qaList = new ArrayList<>();
-                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        QAModel qa = doc.toObject(QAModel.class);
-                        if (qa != null) {
-                            qaList.add(qa);
+        if (getContext() == null || !isAdded() || db == null || subject == null) {
+            return;
+        }
+
+        try {
+            db.collection("qa")
+                    .whereEqualTo("subject", subject)
+                    .get()
+                    .addOnSuccessListener(queryDocumentSnapshots -> {
+                        if (getContext() == null || !isAdded()) {
+                            return;
                         }
-                    }
-                    // Sort by creation date (newest first)
-                    qaList.sort((q1, q2) -> Long.compare(q2.getCreatedAt(), q1.getCreatedAt()));
-                    adapter.setQAList(qaList);
-                    updateNoResultsVisibility(qaList.isEmpty());
-                })
-                .addOnFailureListener(e -> {
-                    updateNoResultsVisibility(true);
-                });
+                        try {
+                            List<QAModel> qaList = new ArrayList<>();
+                            for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                                QAModel qa = doc.toObject(QAModel.class);
+                                if (qa != null) {
+                                    qaList.add(qa);
+                                }
+                            }
+                            // Sort by creation date (newest first)
+                            qaList.sort((q1, q2) -> Long.compare(q2.getCreatedAt(), q1.getCreatedAt()));
+                            if (adapter != null) {
+                                adapter.setQAList(qaList);
+                            }
+                            updateNoResultsVisibility(qaList.isEmpty());
+                        } catch (Exception e) {
+                            updateNoResultsVisibility(true);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        if (getContext() != null && isAdded()) {
+                            updateNoResultsVisibility(true);
+                            // Silent fail for QA loading - don't show error toast for public data
+                        }
+                    });
+        } catch (Exception e) {
+            if (getContext() != null && isAdded()) {
+                updateNoResultsVisibility(true);
+            }
+        }
     }
 
     private void updateNoResultsVisibility(boolean show) {

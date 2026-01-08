@@ -67,31 +67,65 @@ public class SubjectSummariesFragment extends Fragment {
             public void afterTextChanged(Editable s) {}
         });
 
-        loadSummaries();
+        // Only load summaries when fragment is visible
+        if (getView() != null && isAdded() && getContext() != null) {
+            loadSummaries();
+        }
 
         return view;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Reload summaries when fragment becomes visible
+        if (isAdded() && getContext() != null) {
+            loadSummaries();
+        }
+    }
+
     private void loadSummaries() {
-        db.collection("summaries")
-                .whereEqualTo("subject", subject)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<SummaryModel> summaries = new ArrayList<>();
-                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        SummaryModel summary = doc.toObject(SummaryModel.class);
-                        if (summary != null) {
-                            summaries.add(summary);
+        if (getContext() == null || !isAdded() || db == null || subject == null) {
+            return;
+        }
+
+        try {
+            db.collection("summaries")
+                    .whereEqualTo("subject", subject)
+                    .get()
+                    .addOnSuccessListener(queryDocumentSnapshots -> {
+                        if (getContext() == null || !isAdded()) {
+                            return;
                         }
-                    }
-                    // Sort by creation date (newest first)
-                    summaries.sort((s1, s2) -> Long.compare(s2.getCreatedAt(), s1.getCreatedAt()));
-                    adapter.setSummaries(summaries);
-                    updateNoResultsVisibility(summaries.isEmpty());
-                })
-                .addOnFailureListener(e -> {
-                    updateNoResultsVisibility(true);
-                });
+                        try {
+                            List<SummaryModel> summaries = new ArrayList<>();
+                            for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                                SummaryModel summary = doc.toObject(SummaryModel.class);
+                                if (summary != null) {
+                                    summaries.add(summary);
+                                }
+                            }
+                            // Sort by creation date (newest first)
+                            summaries.sort((s1, s2) -> Long.compare(s2.getCreatedAt(), s1.getCreatedAt()));
+                            if (adapter != null) {
+                                adapter.setSummaries(summaries);
+                            }
+                            updateNoResultsVisibility(summaries.isEmpty());
+                        } catch (Exception e) {
+                            updateNoResultsVisibility(true);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        if (getContext() != null && isAdded()) {
+                            updateNoResultsVisibility(true);
+                            // Silent fail for summaries loading - don't show error toast for public data
+                        }
+                    });
+        } catch (Exception e) {
+            if (getContext() != null && isAdded()) {
+                updateNoResultsVisibility(true);
+            }
+        }
     }
 
     private void filterSummaries(String query) {

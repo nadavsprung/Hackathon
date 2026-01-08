@@ -67,45 +67,98 @@ public class FourthFragment extends Fragment {
 
         btnRefresh.setOnClickListener(v -> loadMyTests());
 
-        // Load tests on fragment creation
-        loadMyTests();
+        // Only load tests when fragment is visible
+        if (getView() != null && isAdded() && getContext() != null) {
+            loadMyTests();
+        }
 
         return view;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Reload tests when fragment becomes visible
+        if (isAdded() && getContext() != null) {
+            loadMyTests();
+        }
+    }
+
     private void loadMyTests() {
-        String userId = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : null;
-        if (userId == null) {
-            tvInfo.setText("אנא התחבר כדי לראות את המבחנים שלך");
-            adapter.setTests(new ArrayList<>());
+        if (getContext() == null || !isAdded() || db == null || auth == null) {
             return;
         }
 
-        db.collection("tests")
-                .whereEqualTo("creatorId", userId)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<TestModel> tests = new ArrayList<>();
-                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        TestModel test = doc.toObject(TestModel.class);
-                        if (test != null) {
-                            tests.add(test);
+        String userId = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : null;
+        if (userId == null) {
+            if (tvInfo != null) {
+                tvInfo.setText("אנא התחבר כדי לראות את המבחנים שלך");
+            }
+            if (adapter != null) {
+                adapter.setTests(new ArrayList<>());
+            }
+            return;
+        }
+
+        try {
+            db.collection("tests")
+                    .whereEqualTo("creatorId", userId)
+                    .get()
+                    .addOnSuccessListener(queryDocumentSnapshots -> {
+                        if (getContext() == null || !isAdded()) {
+                            return;
                         }
-                    }
-                    // Sort by creation date (newest first)
-                    tests.sort((t1, t2) -> Long.compare(t2.getCreatedAt(), t1.getCreatedAt()));
-                    adapter.setTests(tests);
-                    
-                    if (tests.isEmpty()) {
-                        tvInfo.setText("אין מבחנים. צור מבחן חדש בלשונית 'מבחנים'");
-                    } else {
-                        tvInfo.setText("נמצאו " + tests.size() + " מבחנים שלך. לחץ על מבחן כדי לראות תוצאות");
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    tvInfo.setText("שגיאה בטעינת המבחנים");
-                    Toast.makeText(getContext(), "שגיאה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+                        try {
+                            List<TestModel> tests = new ArrayList<>();
+                            for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                                TestModel test = doc.toObject(TestModel.class);
+                                if (test != null) {
+                                    tests.add(test);
+                                }
+                            }
+                            // Sort by creation date (newest first)
+                            tests.sort((t1, t2) -> Long.compare(t2.getCreatedAt(), t1.getCreatedAt()));
+                            if (adapter != null) {
+                                adapter.setTests(tests);
+                            }
+                            
+                            if (tvInfo != null) {
+                                if (tests.isEmpty()) {
+                                    tvInfo.setText("אין מבחנים. צור מבחן חדש בלשונית 'מבחנים'");
+                                } else {
+                                    tvInfo.setText("נמצאו " + tests.size() + " מבחנים שלך. לחץ על מבחן כדי לראות תוצאות");
+                                }
+                            }
+                        } catch (Exception e) {
+                            if (getContext() != null && isAdded() && tvInfo != null) {
+                                tvInfo.setText("שגיאה בעיבוד המבחנים");
+                            }
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        if (getContext() != null && isAdded()) {
+                            if (tvInfo != null) {
+                                tvInfo.setText("שגיאה בטעינת המבחנים");
+                            }
+                            String errorMsg = "שגיאה בטעינת המבחנים";
+                            if (e != null && e.getMessage() != null) {
+                                String msg = e.getMessage().toLowerCase();
+                                if (msg.contains("permission") || msg.contains("permission-denied")) {
+                                    errorMsg = "אין הרשאה לגשת למבחנים. אנא בדוק את הגדרות מסד הנתונים";
+                                } else if (msg.contains("network") || msg.contains("unavailable")) {
+                                    errorMsg = "שגיאת רשת. בדוק את החיבור לאינטרנט";
+                                } else {
+                                    errorMsg = "שגיאה: " + e.getMessage();
+                                }
+                            }
+                            Toast.makeText(getContext(), errorMsg, Toast.LENGTH_LONG).show();
+                        }
+                    });
+        } catch (Exception e) {
+            if (getContext() != null && isAdded() && tvInfo != null) {
+                tvInfo.setText("שגיאה בהתחברות למסד הנתונים");
+            }
+        }
     }
 
     private void showTestLeaderboard(TestModel test) {

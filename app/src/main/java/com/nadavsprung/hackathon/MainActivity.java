@@ -23,36 +23,53 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_main);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+        try {
+            EdgeToEdge.enable(this);
+            setContentView(R.layout.activity_main);
+            ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+                Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+                return insets;
+            });
 
-        tabLayout = findViewById(R.id.tab_layout);
-        viewPager = findViewById(R.id.view_pager);
+            tabLayout = findViewById(R.id.tab_layout);
+            viewPager = findViewById(R.id.view_pager);
 
-        pagerAdapter = new MainPagerAdapter(this);
-        viewPager.setAdapter(pagerAdapter);
-        viewPager.setOffscreenPageLimit(3);
+            if (tabLayout == null || viewPager == null) {
+                android.widget.Toast.makeText(this, "שגיאה בטעינת הממשק", android.widget.Toast.LENGTH_LONG).show();
+                finish();
+                return;
+            }
 
-        mediator = new TabLayoutMediator(tabLayout, viewPager,
-                new TabLayoutMediator.TabConfigurationStrategy() {
-                    @Override
-                    public void onConfigureTab(TabLayout.Tab tab, int position) {
-                        switch (position) {
-                            case 0: tab.setText("נושאים"); break;
-                            case 1: tab.setText("העלה חומרים"); break;
-                            case 2: tab.setText("מבחנים"); break;
-                            case 3: tab.setText("לוח תוצאות"); break;
-                        }
-                        // אופציונלי: אייקונים
-                        // if (position == 0) tab.setIcon(R.drawable.ic_home);
-                    }
-                });
-        mediator.attach();
+            try {
+                pagerAdapter = new MainPagerAdapter(this);
+                viewPager.setAdapter(pagerAdapter);
+                viewPager.setOffscreenPageLimit(3);
+
+                mediator = new TabLayoutMediator(tabLayout, viewPager,
+                        new TabLayoutMediator.TabConfigurationStrategy() {
+                            @Override
+                            public void onConfigureTab(TabLayout.Tab tab, int position) {
+                                switch (position) {
+                                    case 0: tab.setText("נושאים"); break;
+                                    case 1: tab.setText("העלה חומרים"); break;
+                                    case 2: tab.setText("מבחנים"); break;
+                                    case 3: tab.setText("לוח תוצאות"); break;
+                                }
+                                // אופציונלי: אייקונים
+                                // if (position == 0) tab.setIcon(R.drawable.ic_home);
+                            }
+                        });
+                mediator.attach();
+            } catch (Exception e) {
+                android.widget.Toast.makeText(this, "שגיאה בהגדרת הטאבים: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+                e.printStackTrace();
+            }
+        } catch (Exception e) {
+            android.widget.Toast.makeText(this, "שגיאה בטעינת המסך הראשי: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+            finish();
+        }
     }
 
     @Override
