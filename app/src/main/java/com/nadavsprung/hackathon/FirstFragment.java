@@ -35,7 +35,11 @@ public class FirstFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         SubjectsAdapter adapter = new SubjectsAdapter(getContext(), subjects, subject -> {
-            Toast.makeText(getContext(), "לחצת על: " + subject, Toast.LENGTH_SHORT).show();
+            // Navigate to SecondFragment (Chatbot) with selected subject
+            if (getActivity() instanceof MainActivity) {
+                MainActivity mainActivity = (MainActivity) getActivity();
+                mainActivity.navigateToChatbot(subject);
+            }
         });
 
         recyclerView.setAdapter(adapter);

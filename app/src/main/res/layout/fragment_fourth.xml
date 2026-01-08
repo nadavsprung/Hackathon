@@ -1,14 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-xmlns:tools="http://schemas.android.com/tools"
-android:layout_width="match_parent"
-android:layout_height="match_parent"
-tools:context=".FourthFragment">
-
-
-<TextView
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:text="FourthFragment" />
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".FourthFragment">
 
-</FrameLayout>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="לוח תוצאות"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="20dp" />
+
+    <TextView
+        android:id="@+id/tv_leaderboard_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="בחר מבחן כדי לראות את התוצאות"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:layout_marginBottom="20dp"
+        android:textColor="#757575" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_leaderboard"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <Button
+        android:id="@+id/btn_refresh"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🔄 רענן תוצאות"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="#2196F3"
+        android:textColor="@android:color/white" />
+
+</LinearLayout>

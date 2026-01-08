@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@android:drawable/dialog_holo_light_frame"
+    android:layout_marginBottom="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_test_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="כותרת מבחן"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_test_subject"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="נושא: מתמטיקה"
+                android:textSize="14sp"
+                android:textColor="#757575"
+                android:layout_marginTop="4dp" />
+
+            <TextView
+                android:id="@+id/tv_test_questions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="5 שאלות"
+                android:textSize="12sp"
+                android:textColor="#757575" />
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btn_view_leaderboard"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📊 תוצאות"
+            android:layout_marginStart="8dp"
+            android:backgroundTint="#2196F3"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/btn_share_test"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔗 שתף"
+            android:layout_marginStart="8dp"
+            android:backgroundTint="#4CAF50"
+            android:textColor="@android:color/white" />
+
+    </LinearLayout>
+
+</LinearLayout>

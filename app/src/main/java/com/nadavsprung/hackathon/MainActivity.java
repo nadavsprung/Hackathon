@@ -7,6 +7,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.fragment.app.Fragment;
 
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
@@ -16,6 +17,8 @@ public class MainActivity extends AppCompatActivity {
     private TabLayout tabLayout;
     private ViewPager2 viewPager;
     private TabLayoutMediator mediator;
+    private MainPagerAdapter pagerAdapter;
+    public static String selectedSubject = ""; // Shared subject variable
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,7 +34,8 @@ public class MainActivity extends AppCompatActivity {
         tabLayout = findViewById(R.id.tab_layout);
         viewPager = findViewById(R.id.view_pager);
 
-        viewPager.setAdapter(new MainPagerAdapter(this));
+        pagerAdapter = new MainPagerAdapter(this);
+        viewPager.setAdapter(pagerAdapter);
         viewPager.setOffscreenPageLimit(3);
 
         mediator = new TabLayoutMediator(tabLayout, viewPager,
@@ -39,16 +43,30 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onConfigureTab(TabLayout.Tab tab, int position) {
                         switch (position) {
-                            case 0: tab.setText("ראשון"); break;
-                            case 1: tab.setText("שני"); break;
-                            case 2: tab.setText("שלישי"); break;
-                            case 3: tab.setText("רביעי"); break;
+                            case 0: tab.setText("נושאים"); break;
+                            case 1: tab.setText("הכנה למבחן"); break;
+                            case 2: tab.setText("מבחנים"); break;
+                            case 3: tab.setText("סטטיסטיקות"); break;
                         }
                         // אופציונלי: אייקונים
                         // if (position == 0) tab.setIcon(R.drawable.ic_home);
                     }
                 });
         mediator.attach();
+    }
+
+    public void navigateToChatbot(String subject) {
+        // Store subject and switch to SecondFragment (index 1)
+        selectedSubject = subject;
+        viewPager.setCurrentItem(1, true);
+        
+        // Update the fragment if it exists
+        if (pagerAdapter != null) {
+            SecondFragment secondFragment = pagerAdapter.getSecondFragment();
+            if (secondFragment != null) {
+                secondFragment.setSubject(subject);
+            }
+        }
     }
 
     @Override

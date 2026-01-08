@@ -1,77 +1,84 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:padding="16dp"
+    android:orientation="vertical"
     tools:context=".SecondFragment">
+
+    <TextView
+        android:id="@+id/tv_subject_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:text="AI Chatbot"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:background="#E3F2FD"
+        android:gravity="center" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_chat"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="8dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            android:text="עלת חומרים"
-            android:textSize="24sp"
-            android:textStyle="bold" />
-
-        <EditText
-            android:id="@+id/et_long_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="כתוב כאן את התוכן שלך..."
-            android:inputType="textMultiLine|textCapSentences"
-            android:minLines="5"
-            android:gravity="top|start"
-            android:background="@android:drawable/edit_text"
-            android:layout_marginBottom="20dp"/>
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:background="#F5F5F5"
+        android:gravity="center_vertical">
 
         <Button
             android:id="@+id/btn_upload_image"
-            android:layout_width="match_parent"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="📷"
+            android:textSize="20sp"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btn_upload_file"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="📄"
+            android:textSize="20sp"
+            android:layout_marginEnd="8dp" />
+
+        <EditText
+            android:id="@+id/et_message_input"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="בחר תמונה מהגלריה"
-            android:drawableStart="@android:drawable/ic_menu_gallery" />
+            android:layout_weight="1"
+            android:hint="הקלד הודעה..."
+            android:inputType="text"
+            android:maxLines="3"
+            android:padding="12dp"
+            android:background="@android:drawable/edit_text"
+            android:layout_marginEnd="8dp" />
 
-        <ImageView
-            android:id="@+id/iv_preview"
-            android:layout_width="match_parent"
-            android:layout_height="200dp"
-            android:layout_marginTop="10dp"
-            android:scaleType="centerCrop"
-            android:visibility="gone" /> <Button
-        android:id="@+id/btn_upload_file"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:text="צרף קובץ (PDF/Doc)" />
-
-        <TextView
-            android:id="@+id/tv_file_name"
+        <Button
+            android:id="@+id/btn_send"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:text="לא נבחר קובץ"
-            android:textColor="#757575"/>
-
-        <Button
-            android:id="@+id/btn_submit"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="40dp"
-            android:text="שלח / שמור"
-            android:backgroundTint="#4CAF50"/>
-        <Button
-            android:id="@+id/btn_pop_up_groups"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:text="הוספה לקבוצה"
-            android:backgroundTint="#4CAF50"/>
-
+            android:text="שלח"
+            android:backgroundTint="#4CAF50"
+            android:textColor="@android:color/white"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp" />
     </LinearLayout>
-</ScrollView>
+
+    <TextView
+        android:id="@+id/tv_uploaded_files"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:text=""
+        android:textSize="12sp"
+        android:textColor="#757575"
+        android:visibility="gone" />
+
+</LinearLayout>
