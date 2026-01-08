@@ -211,6 +211,10 @@ public class TakeTestActivity extends AppCompatActivity {
             }
         }
 
+        // Make final copies for lambda
+        final int finalCorrectAnswers = correctAnswers;
+        final int finalTotalQuestions = questions.size();
+
         // Get student name
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_student_name, null);
         EditText etStudentName = dialogView.findViewById(R.id.et_student_name);
@@ -224,7 +228,7 @@ public class TakeTestActivity extends AppCompatActivity {
                         studentName = "אנונימי";
                     }
 
-                    saveResult(correctAnswers, questions.size(), studentName);
+                    saveResult(finalCorrectAnswers, finalTotalQuestions, studentName);
                 })
                 .setNegativeButton("ביטול", null)
                 .show();
