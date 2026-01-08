@@ -227,4 +227,64 @@ public class OpenAIService {
         mockJson.append("}");
         return mockJson.toString();
     }
+
+    public void generateChatResponse(String prompt, AICallback callback) {
+        if (API_KEY.isEmpty()) {
+            callback.onSuccess("תשובה לדוגמה: " + prompt);
+            return;
+        }
+
+        new AsyncTask<String, Void, String>() {
+            @Override
+            protected String doInBackground(String... params) {
+                try {
+                    JsonObject requestBody = new JsonObject();
+                    requestBody.addProperty("model", "gpt-3.5-turbo");
+                    
+                    JsonArray messages = new JsonArray();
+                    JsonObject message = new JsonObject();
+                    message.addProperty("role", "user");
+                    message.addProperty("content", prompt);
+                    messages.add(message);
+                    
+                    requestBody.add("messages", messages);
+                    requestBody.addProperty("temperature", 0.7);
+                    requestBody.addProperty("max_tokens", 1000);
+
+                    RequestBody body = RequestBody.create(requestBody.toString(), JSON);
+                    Request request = new Request.Builder()
+                            .url(API_URL)
+                            .addHeader("Authorization", "Bearer " + API_KEY)
+                            .addHeader("Content-Type", "application/json")
+                            .post(body)
+                            .build();
+
+                    Response response = client.newCall(request).execute();
+                    if (response.isSuccessful()) {
+                        String responseBody = response.body().string();
+                        JsonObject jsonResponse = gson.fromJson(responseBody, JsonObject.class);
+                        JsonArray choices = jsonResponse.getAsJsonArray("choices");
+                        if (choices.size() > 0) {
+                            JsonObject choice = choices.get(0).getAsJsonObject();
+                            JsonObject messageObj = choice.getAsJsonObject("message");
+                            return messageObj.get("content").getAsString();
+                        }
+                    }
+                    return "Error: " + response.code();
+                } catch (IOException e) {
+                    Log.e(TAG, "Error calling OpenAI API", e);
+                    return "Error: " + e.getMessage();
+                }
+            }
+
+            @Override
+            protected void onPostExecute(String result) {
+                if (result.startsWith("Error")) {
+                    callback.onError(result);
+                } else {
+                    callback.onSuccess(result);
+                }
+            }
+        }.execute();
+    }
 }

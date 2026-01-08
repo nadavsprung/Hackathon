@@ -43,9 +43,5 @@ public class MainPagerAdapter extends FragmentStateAdapter {
     public int getItemCount() {
         return 4;
     }
-
-    public SecondFragment getSecondFragment() {
-        return secondFragment;
-    }
 }
 

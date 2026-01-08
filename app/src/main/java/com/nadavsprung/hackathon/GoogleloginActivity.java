@@ -91,9 +91,7 @@ public class GoogleloginActivity extends AppCompatActivity {
         });
 
         forgotPassword.setOnClickListener(v -> resetPassword());
-        registerLink.setOnClickListener(v -> {
-            //startActivity(new Intent(this, RegisterActivity.class));
-        });
+        registerLink.setOnClickListener(v -> showRegisterDialog());
     }
 
     private void firebaseAuthWithGoogle(String idToken) {
@@ -163,6 +161,58 @@ public class GoogleloginActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+    private void showRegisterDialog() {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_register, null);
+        builder.setView(dialogView);
+
+        EditText etRegisterEmail = dialogView.findViewById(R.id.et_register_email);
+        EditText etRegisterPassword = dialogView.findViewById(R.id.et_register_password);
+        EditText etRegisterPasswordConfirm = dialogView.findViewById(R.id.et_register_password_confirm);
+        Button btnRegister = dialogView.findViewById(R.id.btn_register);
+        ProgressBar progressBar = dialogView.findViewById(R.id.progress_bar_register);
+
+        android.app.AlertDialog dialog = builder.create();
+        dialog.show();
+
+        btnRegister.setOnClickListener(v -> {
+            String email = etRegisterEmail.getText().toString().trim();
+            String password = etRegisterPassword.getText().toString().trim();
+            String passwordConfirm = etRegisterPasswordConfirm.getText().toString().trim();
+
+            if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                etRegisterEmail.setError("אימייל לא תקין");
+                return;
+            }
+
+            if (password.length() < 6) {
+                etRegisterPassword.setError("סיסמה חייבת להכיל לפחות 6 תווים");
+                return;
+            }
+
+            if (!password.equals(passwordConfirm)) {
+                etRegisterPasswordConfirm.setError("סיסמאות לא תואמות");
+                return;
+            }
+
+            progressBar.setVisibility(View.VISIBLE);
+            btnRegister.setEnabled(false);
+
+            mAuth.createUserWithEmailAndPassword(email, password)
+                    .addOnCompleteListener(this, task -> {
+                        progressBar.setVisibility(View.GONE);
+                        btnRegister.setEnabled(true);
+                        if (task.isSuccessful()) {
+                            Toast.makeText(this, "הרשמה הושלמה בהצלחה!", Toast.LENGTH_SHORT).show();
+                            dialog.dismiss();
+                            navigateToMainActivity();
+                        } else {
+                            Toast.makeText(this, "שגיאה בהרשמה: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        });
     }
 
     @Override

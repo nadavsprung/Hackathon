@@ -35,11 +35,10 @@ public class FirstFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         SubjectsAdapter adapter = new SubjectsAdapter(getContext(), subjects, subject -> {
-            // Navigate to SecondFragment (Chatbot) with selected subject
-            if (getActivity() instanceof MainActivity) {
-                MainActivity mainActivity = (MainActivity) getActivity();
-                mainActivity.navigateToChatbot(subject);
-            }
+            // Navigate to SubjectDetailActivity with selected subject
+            android.content.Intent intent = new android.content.Intent(getContext(), SubjectDetailActivity.class);
+            intent.putExtra("subject", subject);
+            startActivity(intent);
         });
 
         recyclerView.setAdapter(adapter);

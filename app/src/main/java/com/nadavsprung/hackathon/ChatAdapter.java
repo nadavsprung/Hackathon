@@ -31,6 +31,14 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         notifyDataSetChanged();
     }
 
+    public void removeLastMessage() {
+        if (!messages.isEmpty()) {
+            int position = messages.size() - 1;
+            messages.remove(position);
+            notifyItemRemoved(position);
+        }
+    }
+
     @Override
     public int getItemViewType(int position) {
         return messages.get(position).isFromUser() ? TYPE_USER : TYPE_AI;

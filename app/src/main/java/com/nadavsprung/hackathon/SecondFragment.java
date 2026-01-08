@@ -7,67 +7,44 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 public class SecondFragment extends Fragment {
 
-    private RecyclerView recyclerChat;
-    private EditText etMessageInput;
-    private Button btnSend;
-    private Button btnUploadImage;
-    private Button btnUploadFile;
-    private TextView tvSubjectName;
-    private TextView tvUploadedFiles;
-
-    private ChatAdapter chatAdapter;
-    private List<ChatMessage> messages = new ArrayList<>();
-    private List<String> uploadedFiles = new ArrayList<>();
-    private String selectedSubject = "";
-    private String uploadedMaterial = "";
-    
-    private OpenAIService openAIService;
-
-    private ActivityResultLauncher<String> imagePicker;
-    private ActivityResultLauncher<String> filePicker;
+    private Button btnUploadSummary;
+    private Button btnUploadQA;
+    private FirebaseFirestore db;
+    private FirebaseAuth auth;
+    private List<String> subjects;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        openAIService = new OpenAIService();
-
-        imagePicker = registerForActivityResult(
-                new ActivityResultContracts.GetContent(),
-                uri -> {
-                    if (uri != null) {
-                        handleFileUpload(uri, "image");
-                    }
-                }
-        );
-
-        filePicker = registerForActivityResult(
-                new ActivityResultContracts.GetContent(),
-                uri -> {
-                    if (uri != null) {
-                        handleFileUpload(uri, "file");
-                    }
-                }
+        db = FirebaseFirestore.getInstance();
+        auth = FirebaseAuth.getInstance();
+        
+        subjects = Arrays.asList(
+                "מתמטיקה", "פיזיקה", "כימיה", "ביולוגיה",
+                "מדעי המחשב", "אלקטרוניקה", "אנגלית", "ספרות",
+                "לשון והבעה עברית", "היסטוריה", "תנך",
+                "מדעים", "גיאוגרפיה", "אזרחות", "מחשבת ישראל", "מקצועות נוספים"
         );
     }
 
@@ -75,176 +52,128 @@ public class SecondFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_second, container, false);
+        View view = inflater.inflate(R.layout.fragment_upload, container, false);
 
-        recyclerChat = view.findViewById(R.id.recycler_chat);
-        etMessageInput = view.findViewById(R.id.et_message_input);
-        btnSend = view.findViewById(R.id.btn_send);
-        btnUploadImage = view.findViewById(R.id.btn_upload_image);
-        btnUploadFile = view.findViewById(R.id.btn_upload_file);
-        tvSubjectName = view.findViewById(R.id.tv_subject_name);
-        tvUploadedFiles = view.findViewById(R.id.tv_uploaded_files);
+        btnUploadSummary = view.findViewById(R.id.btn_upload_summary);
+        btnUploadQA = view.findViewById(R.id.btn_upload_qa);
 
-        // Get subject from arguments if passed, or from MainActivity
-        if (getArguments() != null) {
-            selectedSubject = getArguments().getString("subject", "");
-        }
-        if (selectedSubject.isEmpty() && getActivity() instanceof MainActivity) {
-            selectedSubject = MainActivity.selectedSubject;
-        }
-        if (!selectedSubject.isEmpty()) {
-            tvSubjectName.setText("הכנה למבחן - " + selectedSubject);
-        }
-
-        // Setup RecyclerView
-        chatAdapter = new ChatAdapter();
-        recyclerChat.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerChat.setAdapter(chatAdapter);
-
-        // Add welcome message
-        addAIMessage("שלום! אני עוזר AI שלך להכנה למבחן. העלה חומר (טקסט, תמונה או PDF) ואני אכין לך סיכום ושאלות תרגול.");
-
-        // Setup button listeners
-        btnSend.setOnClickListener(v -> sendMessage());
-        btnUploadImage.setOnClickListener(v -> imagePicker.launch("image/*"));
-        btnUploadFile.setOnClickListener(v -> filePicker.launch("application/pdf"));
+        btnUploadSummary.setOnClickListener(v -> showUploadSummaryDialog());
+        btnUploadQA.setOnClickListener(v -> showUploadQADialog());
 
         return view;
     }
 
-    private void sendMessage() {
-        String messageText = etMessageInput.getText().toString().trim();
-        if (messageText.isEmpty()) {
-            return;
-        }
+    private void showUploadSummaryDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_upload_summary, null);
+        builder.setView(dialogView);
 
-        // Add user message
-        ChatMessage userMessage = new ChatMessage(messageText, true);
-        chatAdapter.addMessage(userMessage);
-        etMessageInput.setText("");
+        EditText etTitle = dialogView.findViewById(R.id.et_summary_title);
+        EditText etContent = dialogView.findViewById(R.id.et_summary_content);
+        Spinner spinnerSubject = dialogView.findViewById(R.id.spinner_subject);
+        Button btnUpload = dialogView.findViewById(R.id.btn_upload);
 
-        // If user asks for test prep, generate it
-        if (messageText.toLowerCase().contains("מבחן") || messageText.toLowerCase().contains("תרגול") || 
-            messageText.toLowerCase().contains("שאלות")) {
-            generateTestPrep();
-        } else {
-            // Regular chat response
-            simulateAIResponse(messageText);
-        }
+        // Setup subject spinner
+        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
+                getContext(), android.R.layout.simple_spinner_item, subjects);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerSubject.setAdapter(adapter);
 
-        recyclerChat.post(() -> recyclerChat.smoothScrollToPosition(chatAdapter.getItemCount() - 1));
-    }
+        AlertDialog dialog = builder.create();
+        dialog.show();
 
-    private void generateTestPrep() {
-        if (uploadedMaterial.isEmpty()) {
-            addAIMessage("אנא העלה חומר לימוד (טקסט, תמונה או PDF) לפני שאני יכול ליצור סיכום ושאלות תרגול.");
-            return;
-        }
+        btnUpload.setOnClickListener(v -> {
+            String title = etTitle.getText().toString().trim();
+            String content = etContent.getText().toString().trim();
+            String subject = spinnerSubject.getSelectedItem().toString();
 
-        addAIMessage("מכין לך סיכום ושאלות תרגול...");
-        
-        openAIService.generateTestPrep(uploadedMaterial, selectedSubject, new OpenAIService.AICallback() {
-            @Override
-            public void onSuccess(String response) {
-                parseAndDisplayTestPrep(response);
+            if (title.isEmpty()) {
+                etTitle.setError("אנא הכנס כותרת");
+                return;
             }
 
-            @Override
-            public void onError(String error) {
-                getActivity().runOnUiThread(() -> {
-                    addAIMessage("שגיאה ביצירת התוכן. אנא נסה שוב.");
-                });
+            if (content.isEmpty()) {
+                etContent.setError("אנא הכנס תוכן");
+                return;
             }
+
+            uploadSummary(title, content, subject, dialog);
         });
     }
 
-    private void parseAndDisplayTestPrep(String jsonResponse) {
-        try {
-            Gson gson = new Gson();
-            JsonObject json = gson.fromJson(jsonResponse, JsonObject.class);
-            
-            String summary = json.has("summary") ? json.get("summary").getAsString() : "";
-            JsonArray questions = json.has("questions") ? json.getAsJsonArray("questions") : null;
-            
-            getActivity().runOnUiThread(() -> {
-                if (!summary.isEmpty()) {
-                    addAIMessage("📝 סיכום החומר:\n\n" + summary);
-                }
-                
-                if (questions != null && questions.size() > 0) {
-                    StringBuilder questionsText = new StringBuilder("❓ שאלות תרגול:\n\n");
-                    for (int i = 0; i < questions.size(); i++) {
-                        JsonObject q = questions.get(i).getAsJsonObject();
-                        questionsText.append((i + 1)).append(". ").append(q.get("question").getAsString()).append("\n");
-                        JsonArray options = q.getAsJsonArray("options");
-                        for (int j = 0; j < options.size(); j++) {
-                            questionsText.append("   ").append((char)('א' + j)).append(". ").append(options.get(j).getAsString()).append("\n");
-                        }
-                        questionsText.append("\n");
-                    }
-                    addAIMessage(questionsText.toString());
-                }
-            });
-        } catch (Exception e) {
-            getActivity().runOnUiThread(() -> {
-                addAIMessage("תגובה מ-AI:\n" + jsonResponse);
-            });
-        }
+    private void uploadSummary(String title, String content, String subject, AlertDialog dialog) {
+        String summaryId = UUID.randomUUID().toString();
+        String userId = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "anonymous";
+        String userName = auth.getCurrentUser() != null && auth.getCurrentUser().getDisplayName() != null 
+                ? auth.getCurrentUser().getDisplayName() 
+                : auth.getCurrentUser() != null ? auth.getCurrentUser().getEmail() : "משתמש";
+
+        SummaryModel summary = new SummaryModel(summaryId, title, content, subject, userId, userName);
+
+        db.collection("summaries").document(summaryId).set(summary)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(getContext(), "סיכום הועלה בהצלחה!", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(getContext(), "שגיאה בהעלאת הסיכום: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
     }
 
-    private void simulateAIResponse(String userMessage) {
-        String response = "תודה על השאלה שלך. זה תשובה לדוגמה. " +
-                         "בגרסה המלאה, כאן תהיה תשובה מ-AI שמנתח את החומר שהעלית.";
-        
-        recyclerChat.postDelayed(() -> {
-            addAIMessage(response);
-        }, 1000);
+    private void showUploadQADialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_upload_qa, null);
+        builder.setView(dialogView);
+
+        EditText etQuestion = dialogView.findViewById(R.id.et_question);
+        EditText etAnswer = dialogView.findViewById(R.id.et_answer);
+        Spinner spinnerSubject = dialogView.findViewById(R.id.spinner_subject);
+        Button btnUpload = dialogView.findViewById(R.id.btn_upload);
+
+        // Setup subject spinner
+        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
+                getContext(), android.R.layout.simple_spinner_item, subjects);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerSubject.setAdapter(adapter);
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+        btnUpload.setOnClickListener(v -> {
+            String question = etQuestion.getText().toString().trim();
+            String answer = etAnswer.getText().toString().trim();
+            String subject = spinnerSubject.getSelectedItem().toString();
+
+            if (question.isEmpty()) {
+                etQuestion.setError("אנא הכנס שאלה");
+                return;
+            }
+
+            if (answer.isEmpty()) {
+                etAnswer.setError("אנא הכנס תשובה");
+                return;
+            }
+
+            uploadQA(question, answer, subject, dialog);
+        });
     }
 
-    private void addAIMessage(String text) {
-        ChatMessage aiMessage = new ChatMessage(text, false);
-        chatAdapter.addMessage(aiMessage);
-        recyclerChat.post(() -> recyclerChat.smoothScrollToPosition(chatAdapter.getItemCount() - 1));
-    }
+    private void uploadQA(String question, String answer, String subject, AlertDialog dialog) {
+        String qaId = UUID.randomUUID().toString();
+        String userId = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "anonymous";
+        String userName = auth.getCurrentUser() != null && auth.getCurrentUser().getDisplayName() != null 
+                ? auth.getCurrentUser().getDisplayName() 
+                : auth.getCurrentUser() != null ? auth.getCurrentUser().getEmail() : "משתמש";
 
-    private void handleFileUpload(Uri uri, String type) {
-        String fileName = uri.getLastPathSegment();
-        if (fileName == null) {
-            fileName = "קובץ";
-        }
+        QAModel qa = new QAModel(qaId, question, answer, subject, userId, userName);
 
-        uploadedFiles.add(fileName);
-        updateUploadedFilesDisplay();
-
-        // Add message about uploaded file
-        String fileTypeText = type.equals("image") ? "תמונה" : "קובץ PDF";
-        String uploadMessage = "העליתי " + fileTypeText + ": " + fileName;
-        ChatMessage uploadMsg = new ChatMessage(uploadMessage, true, uri.toString());
-        chatAdapter.addMessage(uploadMsg);
-
-        // For now, just notify - in real app, extract text from PDF/image
-        uploadedMaterial += "\n[קובץ: " + fileName + "]";
-        
-        recyclerChat.postDelayed(() -> {
-            addAIMessage("קיבלתי את ה" + fileTypeText + " שלך. אתה יכול לבקש ממני ליצור סיכום ושאלות תרגול.");
-        }, 1500);
-
-        recyclerChat.post(() -> recyclerChat.smoothScrollToPosition(chatAdapter.getItemCount() - 1));
-    }
-
-    private void updateUploadedFilesDisplay() {
-        if (uploadedFiles.isEmpty()) {
-            tvUploadedFiles.setVisibility(View.GONE);
-        } else {
-            tvUploadedFiles.setVisibility(View.VISIBLE);
-            tvUploadedFiles.setText("קבצים שהועלו: " + String.join(", ", uploadedFiles));
-        }
-    }
-
-    public void setSubject(String subject) {
-        this.selectedSubject = subject;
-        if (tvSubjectName != null) {
-            tvSubjectName.setText("הכנה למבחן - " + subject);
-        }
+        db.collection("qa").document(qaId).set(qa)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(getContext(), "שאלה ותשובה הועלו בהצלחה!", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(getContext(), "שגיאה בהעלאת השאלה והתשובה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
     }
 }
