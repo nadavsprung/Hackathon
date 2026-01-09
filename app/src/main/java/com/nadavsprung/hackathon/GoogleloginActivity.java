@@ -135,14 +135,15 @@ public class GoogleloginActivity extends AppCompatActivity {
 
         initializeViews();
 
-        // הגדרת Google Sign-In
+        // הגדרת Google Sign-In - Temporarily disable if not configured
         try {
             String clientId = getString(R.string.default_web_client_id);
             if (clientId == null || clientId.isEmpty()) {
-                Toast.makeText(this, "שגיאה בהגדרת Google Sign-In: חסר Client ID", Toast.LENGTH_LONG).show();
+                // Silently disable Google Sign-In if not configured
                 if (googleLoginButton != null) {
-                    googleLoginButton.setEnabled(false);
+                    googleLoginButton.setVisibility(View.GONE);
                 }
+                mGoogleSignInClient = null;
             } else {
                 GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                         .requestIdToken(clientId)
@@ -153,9 +154,9 @@ public class GoogleloginActivity extends AppCompatActivity {
                 mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
             }
         } catch (Exception e) {
-            Toast.makeText(this, "שגיאה בהגדרת Google Sign-In: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            // Silently disable Google Sign-In if there's an error
             if (googleLoginButton != null) {
-                googleLoginButton.setEnabled(false);
+                googleLoginButton.setVisibility(View.GONE);
             }
             mGoogleSignInClient = null;
         }
@@ -232,38 +233,70 @@ public class GoogleloginActivity extends AppCompatActivity {
         }
 
         showLoading(true);
-        mAuth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this, task -> {
-                    showLoading(false);
-                    if (task.isSuccessful()) {
-                        Toast.makeText(this, "התחברת בהצלחה!", Toast.LENGTH_SHORT).show();
-                        navigateToMainActivity();
-                    } else {
-                        String errorMessage = "שגיאה בהתחברות";
-                        if (task.getException() != null && task.getException().getMessage() != null) {
-                            String msg = task.getException().getMessage().toLowerCase();
-                            if (msg.contains("no user record") || msg.contains("user not found")) {
-                                errorMessage = "חשבון לא נמצא. האם תרצה להירשם?";
-                                // Offer to create account
-                                offerRegistration(email, password);
-                                return;
-                            } else if (msg.contains("wrong password") || msg.contains("invalid password")) {
-                                errorMessage = "סיסמה שגויה";
-                                passwordInput.setError("סיסמה שגויה");
-                                passwordInput.requestFocus();
-                            } else if (msg.contains("network") || msg.contains("connection")) {
-                                errorMessage = "שגיאת רשת. בדוק את החיבור לאינטרנט";
+        try {
+            mAuth.signInWithEmailAndPassword(email, password)
+                    .addOnCompleteListener(this, task -> {
+                        showLoading(false);
+                        try {
+                            if (task.isSuccessful()) {
+                                // Verify user is logged in
+                                if (mAuth.getCurrentUser() != null) {
+                                    Toast.makeText(this, "התחברת בהצלחה!", Toast.LENGTH_SHORT).show();
+                                    // Small delay to ensure everything is set up
+                                    emailInput.postDelayed(() -> navigateToMainActivity(), 300);
+                                } else {
+                                    Toast.makeText(this, "שגיאה: המשתמש לא מחובר", Toast.LENGTH_LONG).show();
+                                }
                             } else {
-                                errorMessage = "שגיאה: " + task.getException().getMessage();
+                                String errorMessage = "שגיאה בהתחברות";
+                                Exception exception = task.getException();
+                                if (exception != null && exception.getMessage() != null) {
+                                    String msg = exception.getMessage().toLowerCase();
+                                    if (msg.contains("no user record") || msg.contains("user not found") || msg.contains("there is no user")) {
+                                        errorMessage = "חשבון לא נמצא. האם תרצה להירשם?";
+                                        // Offer to create account
+                                        emailInput.postDelayed(() -> offerRegistration(email, password), 100);
+                                        return;
+                                    } else if (msg.contains("wrong password") || msg.contains("invalid password") || msg.contains("password is invalid")) {
+                                        errorMessage = "סיסמה שגויה";
+                                        passwordInput.setError("סיסמה שגויה");
+                                        passwordInput.requestFocus();
+                                    } else if (msg.contains("network") || msg.contains("connection") || msg.contains("unreachable")) {
+                                        errorMessage = "שגיאת רשת. בדוק את החיבור לאינטרנט";
+                                    } else if (msg.contains("too many requests")) {
+                                        errorMessage = "יותר מדי ניסיונות. נסה שוב מאוחר יותר";
+                                    } else {
+                                        errorMessage = "שגיאה: " + exception.getMessage();
+                                    }
+                                }
+                                Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
+                            }
+                        } catch (Exception e) {
+                            Toast.makeText(this, "שגיאה בעיבוד התוצאה: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            e.printStackTrace();
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        showLoading(false);
+                        String errorMsg = "שגיאה בהתחברות";
+                        if (e != null && e.getMessage() != null) {
+                            String msg = e.getMessage().toLowerCase();
+                            if (msg.contains("network") || msg.contains("connection")) {
+                                errorMsg = "שגיאת רשת. בדוק את החיבור לאינטרנט";
+                            } else {
+                                errorMsg = "שגיאה: " + e.getMessage();
                             }
                         }
-                        Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    showLoading(false);
-                    Toast.makeText(this, "שגיאה: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+                        Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show();
+                        if (e != null) {
+                            e.printStackTrace();
+                        }
+                    });
+        } catch (Exception e) {
+            showLoading(false);
+            Toast.makeText(this, "שגיאה בהתחלת התחברות: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+        }
     }
 
     private void offerRegistration(String email, String password) {
@@ -336,10 +369,21 @@ public class GoogleloginActivity extends AppCompatActivity {
     }
 
     private void navigateToMainActivity() {
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
+        try {
+            // Verify user is actually logged in before navigating
+            if (mAuth.getCurrentUser() == null) {
+                Toast.makeText(this, "שגיאה: המשתמש לא מחובר", Toast.LENGTH_LONG).show();
+                return;
+            }
+            
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        } catch (Exception e) {
+            Toast.makeText(this, "שגיאה בניווט: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+        }
     }
 
     private void showRegisterDialog() {
@@ -383,34 +427,57 @@ public class GoogleloginActivity extends AppCompatActivity {
                     .addOnCompleteListener(this, task -> {
                         progressBar.setVisibility(View.GONE);
                         btnRegister.setEnabled(true);
-                        if (task.isSuccessful()) {
-                            Toast.makeText(this, "הרשמה הושלמה בהצלחה!", Toast.LENGTH_SHORT).show();
-                            dialog.dismiss();
-                            navigateToMainActivity();
-                        } else {
-                            String errorMsg = "שגיאה בהרשמה";
-                            if (task.getException() != null) {
-                                String msg = task.getException().getMessage();
-                                if (msg != null) {
-                                    msg = msg.toLowerCase();
-                                    if (msg.contains("already exists") || msg.contains("already in use")) {
+                        try {
+                            if (task.isSuccessful()) {
+                                // Verify user is created and logged in
+                                if (mAuth.getCurrentUser() != null) {
+                                    Toast.makeText(this, "הרשמה הושלמה בהצלחה!", Toast.LENGTH_SHORT).show();
+                                    dialog.dismiss();
+                                    // Small delay to ensure everything is set up
+                                    etRegisterEmail.postDelayed(() -> navigateToMainActivity(), 300);
+                                } else {
+                                    Toast.makeText(this, "שגיאה: המשתמש לא נוצר", Toast.LENGTH_LONG).show();
+                                }
+                            } else {
+                                String errorMsg = "שגיאה בהרשמה";
+                                Exception exception = task.getException();
+                                if (exception != null && exception.getMessage() != null) {
+                                    String msg = exception.getMessage().toLowerCase();
+                                    if (msg.contains("already exists") || msg.contains("already in use") || msg.contains("email-already-in-use")) {
                                         errorMsg = "חשבון עם אימייל זה כבר קיים. נסה להתחבר";
-                                    } else if (msg.contains("weak password")) {
-                                        errorMsg = "הסיסמה חלשה מדי. בחר סיסמה חזקה יותר";
-                                    } else if (msg.contains("network") || msg.contains("connection")) {
+                                    } else if (msg.contains("weak password") || msg.contains("password")) {
+                                        errorMsg = "הסיסמה חלשה מדי. בחר סיסמה חזקה יותר (לפחות 6 תווים)";
+                                    } else if (msg.contains("network") || msg.contains("connection") || msg.contains("unreachable")) {
                                         errorMsg = "שגיאת רשת. בדוק את החיבור לאינטרנט";
+                                    } else if (msg.contains("invalid email")) {
+                                        errorMsg = "כתובת אימייל לא תקינה";
                                     } else {
-                                        errorMsg = "שגיאה: " + task.getException().getMessage();
+                                        errorMsg = "שגיאה: " + exception.getMessage();
                                     }
                                 }
+                                Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show();
                             }
-                            Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show();
+                        } catch (Exception e) {
+                            Toast.makeText(this, "שגיאה בעיבוד הרשמה: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            e.printStackTrace();
                         }
                     })
                     .addOnFailureListener(e -> {
                         progressBar.setVisibility(View.GONE);
                         btnRegister.setEnabled(true);
-                        Toast.makeText(this, "שגיאה בהרשמה: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        String errorMsg = "שגיאה בהרשמה";
+                        if (e != null && e.getMessage() != null) {
+                            String msg = e.getMessage().toLowerCase();
+                            if (msg.contains("network") || msg.contains("connection")) {
+                                errorMsg = "שגיאת רשת. בדוק את החיבור לאינטרנט";
+                            } else {
+                                errorMsg = "שגיאה: " + e.getMessage();
+                            }
+                        }
+                        Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show();
+                        if (e != null) {
+                            e.printStackTrace();
+                        }
                     });
         });
     }

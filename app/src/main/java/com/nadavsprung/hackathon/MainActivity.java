@@ -1,5 +1,6 @@
 package com.nadavsprung.hackathon;
 
+import android.content.Intent;
 import android.os.Bundle;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -11,6 +12,7 @@ import androidx.fragment.app.Fragment;
 
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -18,12 +20,26 @@ public class MainActivity extends AppCompatActivity {
     private ViewPager2 viewPager;
     private TabLayoutMediator mediator;
     private MainPagerAdapter pagerAdapter;
+    private FirebaseAuth mAuth;
     public static String selectedSubject = ""; // Shared subject variable
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         try {
+            // Initialize Firebase Auth
+            mAuth = FirebaseAuth.getInstance();
+            
+            // Check if user is authenticated
+            if (mAuth.getCurrentUser() == null) {
+                // User not logged in, redirect to login
+                Intent intent = new Intent(this, GoogleloginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+                finish();
+                return;
+            }
+
             EdgeToEdge.enable(this);
             setContentView(R.layout.activity_main);
             ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
